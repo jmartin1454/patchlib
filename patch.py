@@ -141,7 +141,6 @@ class coilset:
     def set_currents(self,veci):
         for coilnum in range(self.numcoils):
             self.set_current_in_coil(coilnum,veci[coilnum])
-        
 
     def b(self,r):
         b_total=0.
