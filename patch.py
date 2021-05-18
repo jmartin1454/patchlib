@@ -116,43 +116,52 @@ class coil:
 
 class coilset:
     def __init__(self):
-        self.coils=[]
-        self.ncoils=len(self.coils)
+        self.coil=[]
+        self.numcoils=len(self.coil)
 
     def add_coil(self,points):
         c=coil(points,0.0)
-        self.coils.append(c)
-        self.ncoils=len(self.coils)
+        self.coil.append(c)
+        self.numcoils=len(self.coil)
         
     def set_current_in_coil(self,coilnum,i):
-        if(coilnum<self.ncoils):
-            self.coils[coilnum].set_current(i)
+        if(coilnum<self.numcoils):
+            self.coil[coilnum].set_current(i)
         else:
-            print("Error %d is larger than number of coils %d"%coilnum,self.ncoils)
+            print("Error %d is larger than number of coils %d"%coilnum,self.numcoils)
             
     def set_common_current(self,i):
-        for coilnum in range(self.ncoils):
+        for coilnum in range(self.numcoils):
             self.set_current_in_coil(coilnum,i)
+
+    def zero_currents(self):
+        for coilnum in range(self.numcoils):
+            self.set_current_in_coil(coilnum,0.0)
+                    
+    def set_currents(self,veci):
+        for coilnum in range(self.numcoils):
+            self.set_current_in_coil(coilnum,veci[coilnum])
+        
 
     def b(self,r):
         b_total=0.
-        for coilnum in range(self.ncoils):
-            b_total=b_total+self.coils[coilnum].b(r)
+        for coilnum in range(self.numcoils):
+            b_total=b_total+self.coil[coilnum].b(r)
         return b_total
         
     def b_prime(self,x,y,z):
         b_total_x=0.*x
         b_total_y=0.*y
         b_total_z=0.*z
-        for coilnum in range(self.ncoils):
-            b_coil_x,b_coil_y,b_coil_z=self.coils[coilnum].b_prime(x,y,z)
+        for coilnum in range(self.numcoils):
+            b_coil_x,b_coil_y,b_coil_z=self.coil[coilnum].b_prime(x,y,z)
             b_total_x=b_total_x+b_coil_x
             b_total_y=b_total_y+b_coil_y
             b_total_z=b_total_z+b_coil_z
         return b_total_x,b_total_y,b_total_z
         
     def draw_coil(self,number,ax,style,color):
-        coil = self.coils[number]
+        coil = self.coil[number]
         points = coil.points
         points=np.append(points,[points[0]],axis=0) # force draw closed loop
         x = ([p[0] for p in points])
@@ -165,13 +174,13 @@ class coilset:
         ax.text(x[0],y[0],z[0],"%d"%number,color="r")
 
     def draw_coils(self,ax,style='-',color='black'):
-        for number in range(self.ncoils):
+        for number in range(self.numcoils):
             self.draw_coil(number,ax,style,color)
 
     def output_solidworks(self,outfile):
         with open(outfile,'w') as f:
-            for number in range(self.ncoils):
-                coil = self.coils[number]
+            for number in range(self.numcoils):
+                coil = self.coil[number]
                 points = coil.points
                 firstpoint=points[0]
                 lastpoint=points[-1]
@@ -190,8 +199,8 @@ class coilset:
             f.write("translate(end) sphere(thickness);\n")
             f.write("}\n")
             f.write("}\n")
-            for number in range(self.ncoils):
-                coil = self.coils[number]
+            for number in range(self.numcoils):
+                coil = self.coil[number]
                 points = coil.points
                 firstpoint=points[0]
                 lastpoint=points[-1]
@@ -209,8 +218,8 @@ class coilset:
         with open(outfile,'w') as f:
             f.write("thickness = %f\n"%thickness)
             f.write("translate(end) sphere(thickness);\n")
-            for number in range(self.ncoils):
-                coil = self.coils[number]
+            for number in range(self.numcoils):
+                coil = self.coil[number]
                 points = coil.points
                 firstpoint=points[0]
                 lastpoint=points[-1]
