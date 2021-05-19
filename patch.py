@@ -3,7 +3,7 @@
 
 from scipy.constants import mu_0, pi
 import numpy as np
-from Arrow3D import *
+from .Arrow3D import *
 
 def b_segment(i,p0,p1,r):
     # p0 is one end (vector in m)
