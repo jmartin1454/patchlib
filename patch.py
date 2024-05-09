@@ -105,15 +105,17 @@ def b_loop_2(i,points,x,y,z):
 
 class coil:
     def __init__(self,points,current):
-        self.points = points
-        self.current = current
+        self.points=points
+        self.current=current
     def set_current(self,current):
-        self.current = current
+        self.current=current
     def b(self,r):
         return b_loop(self.current,self.points,r)
     def b_prime(self,x,y,z):
         return b_loop_2(self.current,self.points,x,y,z)
-
+    def flip_this_coil(self):
+        self.points=np.flip(self.points,axis=0)
+    
 class coilset:
     def __init__(self):
         self.coil=[]
