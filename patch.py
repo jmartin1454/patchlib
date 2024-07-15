@@ -167,10 +167,10 @@ class coilset:
         y = ([p[1] for p in points])
         z = ([p[2] for p in points])
         ax.plot(x,y,z,style,color=color)
-        a=Arrow3D([x[0],x[1]],[y[0],y[1]],[z[0],z[1]],mutation_scale=20, 
-                  lw=3,arrowstyle="-|>",color="r")
-        ax.add_artist(a)
-        ax.text(x[0],y[0],z[0],"%d"%number,color="r")
+        #a=Arrow3D([x[0],x[1]],[y[0],y[1]],[z[0],z[1]],mutation_scale=20, 
+        #          lw=3,arrowstyle="-|>",color="r")
+        #ax.add_artist(a)
+        #ax.text(x[0],y[0],z[0],"%d"%number,color="r")
 
     def draw_coils(self,ax,style='-',color='black'):
         for number in range(self.numcoils):
