@@ -5,6 +5,8 @@ from scipy.constants import mu_0, pi
 import numpy as np
 from .Arrow3D import *
 
+np.random.seed(45634634)
+
 def b_segment(i,p0,p1,r):
     # p0 is one end (vector in m)
     # p1 is the other (m)
@@ -105,15 +107,23 @@ def b_loop_2(i,points,x,y,z):
 
 class coil:
     def __init__(self,points,current):
-        self.points = points
-        self.current = current
+        self.points=points
+        self.current=current
     def set_current(self,current):
-        self.current = current
+        self.current=current
     def b(self,r):
         return b_loop(self.current,self.points,r)
     def b_prime(self,x,y,z):
         return b_loop_2(self.current,self.points,x,y,z)
-
+    def flip_this_coil(self):
+        self.points=np.flip(self.points,axis=0)
+    def move(self,dx,dy,dz):
+        self.points[:,0]=self.points[:,0]+dx
+        self.points[:,1]=self.points[:,1]+dy
+        self.points[:,2]=self.points[:,2]+dz
+    def wiggle(self,sigma): # wiggles each point according to normal distribution
+        self.points=self.points+np.random.normal(0,sigma,(len(self.points),3))
+    
 class coilset:
     def __init__(self):
         self.coil=[]
@@ -134,6 +144,15 @@ class coilset:
         for coilnum in range(self.numcoils):
             self.set_current_in_coil(coilnum,i)
 
+    def wiggle(self,sigma):
+        for coil in self.coil:
+            coil.wiggle(sigma)
+            #coil.wiggle_up(sigma)
+
+    def move(self,x,y,z):
+        for coil in self.coils:
+            coil.move(x,y,z)
+            
     def zero_currents(self):
         for coilnum in range(self.numcoils):
             self.set_current_in_coil(coilnum,0.0)
