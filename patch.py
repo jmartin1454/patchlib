@@ -1,5 +1,6 @@
 # Fri May 24 10:11:45 CDT 2019 Jeff added this line.
 # June 16, 2019 Jeff modified to limit to class definitions.
+#July 19,2024 Modeste added the draw option to output the layout of the MSR walls starting at line 253.
 
 from scipy.constants import mu_0, pi
 import numpy as np
@@ -134,7 +135,7 @@ class coilset:
         self.coil.append(c)
         self.numcoils=len(self.coil)
         
-    def swap_coils(self,n1,n2): #numbering coils
+    def swap_coils(self,n1,n2):   #numbering the coils
         self.coil[n1],self.coil[n2]=self.coil[n2],self.coil[n1]
         
     def set_current_in_coil(self,coilnum,i):
@@ -189,10 +190,13 @@ class coilset:
         y = ([p[1] for p in points])
         z = ([p[2] for p in points])
         ax.plot(x,y,z,style,color=color)
-        #a=Arrow3D([x[0],x[1]],[y[0],y[1]],[z[0],z[1]],mutation_scale=20, 
-        #          lw=3,arrowstyle="-|>",color="r")
-        #ax.add_artist(a)
-        #ax.text(x[0],y[0],z[0],"%d"%number,color="r")
+        a=Arrow3D([x[0],x[1]],[y[0],y[1]],[z[0],z[1]],mutation_scale=20, 
+                  lw=3,arrowstyle="-|>",color="r")
+        ax.add_artist(a)
+        ax.text(np.average(x),np.average(y),np.average(z),"%d"%number,color="r",
+                horizontalalignment='center',
+                verticalalignment='center')
+        # ax.text(x[0],y[0],z[0],"%d"%number,color="r")
 
     def draw_coils(self,ax,style='-',color='black'):
         for number in range(self.numcoils):
@@ -253,4 +257,177 @@ class coilset:
                 for p in points:
                     f.write("translate([%f,%f,%f]) sphere(thickness);\n"%(p[0],p[1],p[2]))
                 f.write("}\n")
+ #Drawing layout of coils added by Modeste from Mark  2024/07/19
+    def make_closed(self):
+        '''
+        iterate over all coils in the coil_set and make the coils closed if the first and last point in the list are not identical.
+        
+        returns number of coils closed
+        '''
+        count = 0
+        for coil in self.coil:
+            if np.any(coil.points[0] != coil.points[-1]):
+                coil.points = np.vstack((coil.points,coil.points[0]))
+                count = count + 1
+        return count
+        
+    def make_open(self):
+        '''
+        iterate over all coils in the coil_set and make the coils open if the first and last point in the list are identical.
+        
+        returns number of coils opened.
+        '''
+        count = 0
+        for coil in self.coil:
+            if np.all(coil.points[0] == coil.points[-1]):
+                coil.points = coil.points[:-1]
+                count = count + 1
+        return count
+    def draw_pts(self, ax, points, sorting, equal=True, arrow=True, poslabel=False,color=None, **plt_kwargs):
+        '''
+        ax - matplotlib axis to draw on
+        points- n x 3 array of points to be drawn
+        sorting = 1x3 array indicating columns for [x-axis in plot, y-axis in plot, filter axis for pmin and pmax]
+        equal - bool if axis should be axis scaling
+        arrow - bool if arrows showing line directions should be drawn
+        poslabel - if each vertex should be labels with its position, can be really slow if a large number of points (>50) are used
+        '''
+
+        p=ax.plot(points[:,sorting[0]],points[:,sorting[1]],**plt_kwargs)[0]
+        if equal: ax.axis('equal')
+        if poslabel:
+            for lx,ly,x,y,z in zip(points[:,sorting[0]], points[:,sorting[1]],points[:,0],points[:,1],points[:,2]):
+                ax.annotate(
+                    '(%.1f,%.1f,%0.1f)'%(x,y,z),
+                    (lx, ly),
+                    fontsize=14,
+                    color=p.get_color())
+        if arrow:
+          for i in range(len(points[:,sorting[0]])-1):
+              ax.arrow(
+                  points[i,sorting[0]], points[i,sorting[1]],
+                  (points[i+1,sorting[0]]-points[i,sorting[0]])/3,
+                  (points[i+1,sorting[1]]-points[i,sorting[1]])/3,
+                  color=p.get_color(),
+                  width=0.02,
+                  length_includes_head=True
+              )
+    def draw_xy(self,ax,filter_axis=-1,equal=True,arrow=False,poslabel=False,**plt_kwargs):
+        for coil in self.coil:
+            self.draw_pts(ax,coil.points,[0,1,filter_axis],equal,arrow,poslabel,**plt_kwargs)
+        ax.set_xlabel('x (m)')
+        ax.set_ylabel('y (m)')
+    def draw_yz(self,ax,filter_axis=-1,equal=True,arrow=True,poslabel=False,**plt_kwargs):
+        for coil in self.coil:
+            self.draw_pts(ax,coil.points,[1,2,filter_axis],equal,arrow,poslabel,**plt_kwargs)
+        ax.set_xlabel('y (m)')
+        ax.set_ylabel('z (m)')
+    def draw_xz(self,ax,filter_axis=-1,equal=True,arrow=True,poslabel=False,**plt_kwargs):
+        for coil in self.coil:
+            self.draw_pts(ax,coil.points,[0,2,filter_axis],equal,arrow,poslabel,**plt_kwargs)
+        ax.set_xlabel('x (m)')
+        ax.set_ylabel('z (m)')
+    def draw_iso(self,ax,filter_axis=-1,equal=True,arrow=False,poslabel=False,**plt_kwargs):
+        for coil in self.coil:
+            ax.plot(coil.points[:,0],coil.points[:,1],coil.points[:,2],**plt_kwargs)
+            ax.set_xlabel('x (m)')
+            ax.set_ylabel('y (m)')
+            ax.set_zlabel('z (m)')
+        if equal:
+            ax.set_xlim3d(-1.1, 1.1)
+            ax.set_ylim3d(-1.1, 1.1)
+            ax.set_zlim3d(-1.1, 1.1)
+        if arrow:
+            print("Cannot add arrows to 3d plot")
+        if poslabel:
+            print("cannot add position labels to 3d plot")
+    def draw_layout(self,fig, equal= True,arrow=False,poslabel=False, title_add = "",drawL5=False,drawL6=False, **plt_kwargs):
+        
+        self.make_closed()
+        
+        if not fig.axes:
+            ax3=[]
+            ax3.append(fig.add_subplot(2, 2, 3)) #lower left, xy-plane
+            ax3.append(fig.add_subplot(2, 2, 4)) #lower right,yz-plane
+            ax3.append(fig.add_subplot(2, 2, 1)) #upper left, xz-plane
+            ax3.append(fig.add_subplot(2, 2, 2, projection='3d')) #upper right isometric view
+        else:
+            ax3 = fig.axes
+        
+        ax3[0].set_title("North and South Walls")
+        self.draw_xz(ax3[0],equal=equal,arrow=arrow,poslabel=poslabel,**plt_kwargs)
+        
+        ax3[1].set_title("East and West Walls")
+        self.draw_yz(ax3[1],equal=equal,arrow=arrow,poslabel=poslabel,**plt_kwargs)
+        
+        ax3[2].set_title("Floor and Ceiling")
+        self.draw_xy(ax3[2],equal=equal,arrow=arrow,poslabel=poslabel,**plt_kwargs)
+        
+        self.draw_iso(ax3[3])
+        
+        fig.suptitle("Orthgraphic View of Traces"+title_add)
+        
+        if drawL5:
+            DrawLayer5(ax3[0],ax3[1],ax3[2])
+        if drawL6:
+            DrawLayer6(ax3[0],ax3[1],ax3[2])
+        
+        self.make_open()
+        
+        return ax3
+    
+def DrawLayer5(axz,ayz,axy, lcolor = "magenta", width = 1):
+    MSR_BackFront = 2400/1000 #meter (y axis)
+    MSR_TopBottom = 2400/1000 #meter (z axis)
+    MSR_LeftRight = 2400/1000 #meter (x axis)
+    
+    axz.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor, linewidth=width)
+    ayz.plot([-MSR_BackFront/2, MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor, linewidth=width)
+    axy.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2, MSR_BackFront/2],
+            color=lcolor, linewidth=width)
+
+def DrawLayer6(axz,ayz,axy, lcolor = ["magenta","orchid"], width = 1):
+    MSR_BackFront = 2207/1000 #meter (y axis)
+    MSR_TopBottom = 2217/1000 #meter (z axis)
+    MSR_LeftRight = 2217/1000 #meter (x axis)
+    
+    axz.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor[0], linewidth=width)
+    ayz.plot([-MSR_BackFront/2, MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor[0], linewidth=width)
+    axy.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2, MSR_BackFront/2],
+            color=lcolor[0], linewidth=width)
+    degaus_width = 0.02#meter, width of deagussing cable around edges
+    axz.plot([-(MSR_LeftRight/2-degaus_width), (MSR_LeftRight/2-degaus_width), (MSR_LeftRight/2-degaus_width),-(MSR_LeftRight/2-degaus_width),-(MSR_LeftRight/2-degaus_width)],
+             [ (MSR_TopBottom/2-degaus_width), (MSR_TopBottom/2-degaus_width),-(MSR_TopBottom/2-degaus_width),-(MSR_TopBottom/2-degaus_width), (MSR_TopBottom/2-degaus_width)],
+            color=lcolor[1], linewidth=width*0.8,linestyle="--")
+    ayz.plot([-(MSR_BackFront/2-degaus_width), (MSR_BackFront/2-degaus_width), (MSR_BackFront/2-degaus_width),-(MSR_BackFront/2-degaus_width),-(MSR_BackFront/2-degaus_width)],
+             [ (MSR_TopBottom/2-degaus_width), (MSR_TopBottom/2-degaus_width),-(MSR_TopBottom/2-degaus_width),-(MSR_TopBottom/2-degaus_width), (MSR_TopBottom/2-degaus_width)],
+            color=lcolor[1], linewidth=width*0.8,linestyle="--")
+    axy.plot([-(MSR_LeftRight/2-degaus_width), (MSR_LeftRight/2-degaus_width), (MSR_LeftRight/2-degaus_width),-(MSR_LeftRight/2-degaus_width),-(MSR_LeftRight/2-degaus_width)],
+             [ (MSR_BackFront/2-degaus_width), (MSR_BackFront/2-degaus_width),-(MSR_BackFront/2-degaus_width),-(MSR_BackFront/2-degaus_width), (MSR_BackFront/2-degaus_width)],
+            color=lcolor[1], linewidth=width*0.8,linestyle="--")
+
+def DrawCoruplast(axz,ayz,axy, lcolor = "teal", width = 1):
+    MSR_BackFront = 48*25.4/1000 #meter (y axis)
+    MSR_TopBottom = 48*25.4/1000 #meter (z axis)
+    MSR_LeftRight = 48*25.4/1000 #meter (x axis)
+    
+    axz.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor, linewidth=width)
+    ayz.plot([-MSR_BackFront/2, MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2],
+             [ MSR_TopBottom/2, MSR_TopBottom/2,-MSR_TopBottom/2,-MSR_TopBottom/2, MSR_TopBottom/2],
+            color=lcolor, linewidth=width)
+    axy.plot([-MSR_LeftRight/2, MSR_LeftRight/2, MSR_LeftRight/2,-MSR_LeftRight/2,-MSR_LeftRight/2],
+             [ MSR_BackFront/2, MSR_BackFront/2,-MSR_BackFront/2,-MSR_BackFront/2, MSR_BackFront/2],
+            color=lcolor, linewidth=width)
 
