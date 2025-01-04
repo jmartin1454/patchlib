@@ -134,6 +134,9 @@ class coilset:
         self.coil.append(c)
         self.numcoils=len(self.coil)
         
+    def swap_coils(self,n1,n2): #numbering coils
+        self.coil[n1],self.coil[n2]=self.coil[n2],self.coil[n1]
+        
     def set_current_in_coil(self,coilnum,i):
         if(coilnum<self.numcoils):
             self.coil[coilnum].set_current(i)
