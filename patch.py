@@ -202,6 +202,16 @@ class coilset:
         for number in range(self.numcoils):
             self.draw_coil(number,ax,style,color)
 
+    def output_coils(self,outfile):
+        for number in range(self.numcoils):
+            thisfile = outfile + str(number) + '.txt'
+            with open(thisfile,'w') as f:
+                coil = self.coil[number]
+                points = coil.points
+                for p in points:
+                    f.write(f'{p[0]:8.4f} {p[1]:8.4f} {p[2]:8.4f}\n')
+            
+            
     def output_solidworks(self,outfile):
         with open(outfile,'w') as f:
             for number in range(self.numcoils):
